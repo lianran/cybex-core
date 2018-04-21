@@ -97,7 +97,7 @@ object_id_type vesting_balance_create_evaluator::do_apply( const vesting_balance
       obj.balance = op.amount;
       op.policy.visit( init_policy_visitor( obj.policy, op.amount.amount, now ) );
       //add
-      obj.fType = (op.fType == null）？0 : op.fType;
+      obj.fType = op.fType;
       obj.sHash = op.sHash;
       obj.sPub = op.sPub;
    } );
@@ -121,11 +121,11 @@ void_result vesting_balance_withdraw_evaluator::do_evaluate( const vesting_balan
    }
    else if (vbo.fType == 1) {
       //TODO:the hash if not right
-      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || sha256(op.sStr) == vbo.sHash);
+      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || digest_type(op.sStr) == vbo.sHash);
       assert( op.amount <= vbo.balance ); 
    }
    else if (vbo.fType == 2){
-      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || op.sPri.get_public_key() == vbo.sPub);
+      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || public_key_type(op.sPri.get_public_key()) == vbo.sPub);
       assert( op.amount <= vbo.balance ); 
    }
   
