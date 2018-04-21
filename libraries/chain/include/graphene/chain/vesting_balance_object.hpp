@@ -141,6 +141,14 @@ namespace graphene { namespace chain {
          /// The vesting policy stores details on when funds vest, and controls when they may be withdrawn
          vesting_policy policy;
 
+
+         //add 
+        int                         fType; //0: no , 1: hash, 2: ecc
+        account_id_type             cashbackOwner;
+        digest_type                 sHash;
+        public_key_type             sPub; 
+      
+
          vesting_balance_object() {}
 
          ///@brief Deposit amount into vesting balance, requiring it to vest before withdrawal

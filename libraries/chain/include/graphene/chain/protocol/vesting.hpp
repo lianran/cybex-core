@@ -73,12 +73,25 @@ namespace graphene { namespace chain {
       asset                       amount;
       vesting_policy_initializer  policy;
 
+
+      //add 
+      int                         fType; //0: no , 1: hash, 2: ecc
+      account_id_type             cashbackOwner;
+      digest_type                 sHash;
+      public_key_type             sPub; 
+
+
+
+      vesting_balance_create_operation(){ fType = 0;}
+
       account_id_type   fee_payer()const { return creator; }
       void              validate()const
       {
          FC_ASSERT( fee.amount >= 0 );
          FC_ASSERT( amount.amount > 0 );
       }
+
+
    };
 
    /**
@@ -98,6 +111,11 @@ namespace graphene { namespace chain {
       vesting_balance_id_type vesting_balance;
       account_id_type         owner; ///< Must be vesting_balance.owner
       asset                   amount;
+
+      //add
+      string                  sStr;
+      private_key_type        sPri; 
+      
 
       account_id_type   fee_payer()const { return owner; }
       void              validate()const

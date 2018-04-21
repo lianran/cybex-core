@@ -42,6 +42,9 @@ void_result vesting_balance_create_evaluator::do_evaluate( const vesting_balance
    FC_ASSERT( d.get_balance( creator_account.id, op.amount.asset_id ) >= op.amount );
    FC_ASSERT( !op.amount.asset_id(d).is_transfer_restricted() );
 
+
+   //TODO: check vaild of the sHash and sPub
+
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
@@ -93,9 +96,11 @@ object_id_type vesting_balance_create_evaluator::do_apply( const vesting_balance
       obj.owner = op.owner;
       obj.balance = op.amount;
       op.policy.visit( init_policy_visitor( obj.policy, op.amount.amount, now ) );
+      //add
+      obj.fType = (op.fType == null）？0 : op.fType;
+      obj.sHash = op.sHash;
+      obj.sPub = op.sPub;
    } );
-
-
    return vbo.id;
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
@@ -105,12 +110,25 @@ void_result vesting_balance_withdraw_evaluator::do_evaluate( const vesting_balan
    const time_point_sec now = d.head_block_time();
 
    const vesting_balance_object& vbo = op.vesting_balance( d );
-   FC_ASSERT( op.owner == vbo.owner, "", ("op.owner", op.owner)("vbo.owner", vbo.owner) );
-   FC_ASSERT( vbo.is_withdraw_allowed( now, op.amount ), "", ("now", now)("op", op)("vbo", vbo) );
-   assert( op.amount <= vbo.balance );      // is_withdraw_allowed should fail before this check is reached
 
-   /* const account_object& owner_account = */ op.owner( d );
-   // TODO: Check asset authorizations and withdrawals
+   if (vbo.fType == 0){
+      FC_ASSERT( op.owner == vbo.owner, "", ("op.owner", op.owner)("vbo.owner", vbo.owner) );
+      FC_ASSERT( vbo.is_withdraw_allowed( now, op.amount ), "", ("now", now)("op", op)("vbo", vbo) );
+      assert( op.amount <= vbo.balance );      // is_withdraw_allowed should fail before this check is reached
+
+      /* const account_object& owner_account = */ op.owner( d );
+      // TODO: Check asset authorizations and withdrawals
+   }
+   else if (vbo.fType == 1) {
+      //TODO:the hash if not right
+      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || sha256(op.sStr) == vbo.sHash);
+      assert( op.amount <= vbo.balance ); 
+   }
+   else if (vbo.fType == 2){
+      FC_ASSERT(vbo.is_withdraw_allowed( now, op.amount ) || op.sPri.get_public_key() == vbo.sPub);
+      assert( op.amount <= vbo.balance ); 
+   }
+  
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
@@ -126,13 +144,25 @@ void_result vesting_balance_withdraw_evaluator::do_apply( const vesting_balance_
    // if it's cashback or worker, it'll be filled up again.
 
    d.modify( vbo, [&]( vesting_balance_object& vbo )
-   {
-      vbo.withdraw( now, op.amount );
-   } );
+      {
+         vbo.withdraw( now, op.amount );
+      } );
 
-   d.adjust_balance( op.owner, op.amount );
+   if (vbo.fType == 0) {
+      d.adjust_balance( op.owner, op.amount );
 
    // TODO: Check asset authorizations and withdrawals
+   }
+   else if (vbo.fType == 1 || vbo.fType == 2) {
+      if (vbo.is_withdraw_allowed( now, op.amount )) {
+         d.adjust_balance(vbo.owner, op.amount);
+      }
+      else {
+         d.adjust_balance(vbo.cashbackOwner, op.amount);
+      }
+   }
+
+   
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
